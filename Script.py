@@ -1,4 +1,4 @@
-import sqlite3 # Thư viện tương tác với cơ sở dữ liệu SQLite
+
 from flask import Flask, request, jsonify, render_template # Flask dùng để tạo ứng dụng web
 import googlemaps # Google Maps API để lấy dữ liệu chỉ đường
 import heapq # Thư viện hỗ trợ hàng đợi ưu tiên, dùng trong thuật toán A*
@@ -62,53 +62,9 @@ def a_star(start, goal, graph):
 def index():
     return render_template('index.html') # Trả về file HTML trang chủ
 
-@app.route('/saved_directions', methods=['GET'])
-def saved_directions():
-    conn = sqlite3.connect('directions.db') # Kết nối tới cơ sở dữ liệu
-    cursor = conn.cursor() # Tạo con trỏ để thực hiện các truy vấn SQL
-
-    # Truy vấn để lấy tất cả các chỉ đường đã lưu trong bảng "directions" và sắp xếp theo ID tăng dần
-    cursor.execute('SELECT * FROM directions ORDER BY id ASC') # Lấy tất cả chỉ đường đã lưu
-    directions = cursor.fetchall() # Lấy tất cả các dòng từ kết quả truy vấn
-    conn.close() # Đóng kết nối
-    return jsonify(directions) # Trả về kết quả dạng JSON
-
-def decode_unicode(s):
-    return s.encode().decode('unicode_escape')
-
-
-@app.route('/delete_directions/<int:id>', methods=['DELETE'])
-def delete_directions(id):
-    conn = sqlite3.connect('directions.db')
-    cursor = conn.cursor()
-
-
-    cursor.execute('DELETE FROM directions WHERE id = ?', (id,)) # Xóa chỉ đường theo ID
-    conn.commit()
-
-    if cursor.rowcount > 0:
-        conn.close()
-        return jsonify({'message': 'Xóa thành công!'}), 200
-    else:
-        conn.close()
-        return jsonify({'error': 'Không tìm thấy chỉ đường với ID này!'}), 404
 
 
 # //Invoke-WebRequest -Uri http://localhost:5000/delete_all_directions -Method Delete
-
-
-@app.route('/delete_all_directions', methods=['DELETE'])
-def delete_all_directions():
-    conn = sqlite3.connect('directions.db')
-    cursor = conn.cursor()
-
-    cursor.execute('DELETE FROM directions') # Xóa tất cả chỉ đường
-    conn.commit()
-
-    cursor.execute('DELETE FROM sqlite_sequence WHERE name="directions"') # Đặt lại ID
-
-    conn.close()
-    return jsonify({'message': 'Đã xóa tất cả dữ liệu thành công và ID đã được đặt lại!'}), 200
 
 # Xây dựng một decorator để định nghĩa một router mới.
 # Router này sẽ xử lý các yêu cầu của HTTP GET xuống đường dẫn là directions.
@@ -189,20 +145,6 @@ def directions():
         })
     else:
         return jsonify({'error': 'Không tìm thấy chỉ đường'}), 404 #trả về lỗi nếu không có kết quả
-
-#thêm thông tin tìm kiếm vào sqlite
-def save_directions_to_db(start, goal, travel_mode, distance, duration):
-    conn = sqlite3.connect('directions.db') # Kết nối cơ sở dữ liệu
-    cursor = conn.cursor()
-    # Lưu chỉ đường vào bảng directions
-    cursor.execute('''
-        INSERT INTO directions (start, goal, travel_mode, distance, duration)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (start, goal, travel_mode, distance, duration))
-
-    conn.commit() # Lưu thay đổi
-    conn.close() # Đóng kết nối
-
 
 if __name__ == '__main__':
     app.run(debug=True) # Chạy ứng dụng Flask ở chế độ debug
